@@ -2,6 +2,7 @@
 #include "hpdaemon/url_trie.h"
 #include "include/hpd_error.h"
 #include "utest.h"
+#include <string.h>
 
 int handler_run = 0;
 
@@ -30,7 +31,7 @@ main (void)
   run_test_not_null("Creating head: ", (head = create_url_trie_element (NULL, NULL)));
 
   int i;
-  run_test_null("Regestering Url: ", (i = register_url ( head, "/dev/asdf", NULL, &reqHandl, NULL, (void*)4, data_ptr)));
+  run_test_null("Registering Url: ", (i = register_url ( head, "/dev/@/ser/@", NULL, &reqHandl, NULL, NULL, data_ptr)));
 
   RequestContainer* reqCon;
 
@@ -38,13 +39,16 @@ main (void)
   run_test("Destroy Request Container: ", ((destroy_request_container(reqCon)) == 0));
   run_test("Creating Request Container: ", ((reqCon = create_request_container()) != NULL));
 
-  run_test("Lookup registered URL: ", (i = lookup_url( head, "/dev/asdf", "PUT", reqCon)) == 0);
+  run_test("Lookup registered URL: ", (i = lookup_url( head, "/dev/123/ser/543", "PUT", reqCon)) == 0);
 
   run_test("Correct handler: ", reqCon->req_handler == &reqHandl);
   run_test("Correct data_ptr", reqCon->data_ptr == data_ptr);
+  run_test("Correct argc: ", reqCon->argc == 2);
+  run_test("Correct argv: ", strcmp(reqCon->argv[0], "123") == 0);
+  run_test("Correct argv(2): ", strcmp(reqCon->argv[1], "543") == 0);
 
-  run_test("Handler run: ", (handler_run == 0));
-  run_test_null("Running request handler: ", reqCon->req_handler(NULL, 1, NULL, 0, NULL, NULL, NULL));
+  run_test("Handler not run: ", (handler_run == 0));
+  run_test_null("Running request handler: ", reqCon->req_handler(NULL, 0, NULL, reqCon->argc, reqCon->argv, reqCon->req_body, data_ptr));
   run_test("Handler run: ", (handler_run == 1));
 
   run_test("Lookup registered URL unknown method: ", (i = lookup_url( head, "/dev/asdf", "NEW_METHOD", reqCon)) == HPD_E_URL_METHOD_NOT_IMPLEMENTED);
